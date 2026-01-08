@@ -1,0 +1,162 @@
+-- XMPP Home Server - Prosody Configuration
+-- This file is generated from template on container startup
+-- Environment variables are substituted by entrypoint.sh
+
+---------- Server Settings ----------
+
+-- PID file for process management
+pidfile = "/var/run/prosody/prosody.pid"
+
+-- Administrator accounts
+admins = { "${ADMIN_JID}" }
+
+-- Network interfaces to listen on
+interfaces = { "*" }
+
+-- Modules path (community modules if installed)
+plugin_paths = { "/usr/lib/prosody/modules" }
+
+---------- Modules ----------
+
+modules_enabled = {
+    -- Core modules (required)
+    "roster";           -- Contact lists
+    "saslauth";         -- Authentication
+    "tls";              -- TLS encryption
+    "dialback";         -- S2S dialback
+    "disco";            -- Service discovery
+    "ping";             -- XMPP ping
+    "pep";              -- Personal Eventing Protocol
+    "private";          -- Private XML storage
+    "version";          -- Server version
+
+    -- Message handling
+    "carbons";          -- Message synchronization across devices
+    "mam";              -- Message Archive Management (XEP-0313)
+    "offline";          -- Offline message storage
+    "smacks";           -- Stream Management (XEP-0198, mobile-friendly)
+    "csi_simple";       -- Client State Indication (XEP-0352)
+
+    -- File transfer
+    "http";             -- HTTP server
+    "http_files";       -- Serve static files
+    "http_file_share";  -- HTTP File Upload (XEP-0363)
+
+    -- User experience
+    "vcard_legacy";     -- Avatars (XEP-0054)
+    "bookmarks";        -- Room bookmarks (XEP-0048)
+    "blocklist";        -- User blocking (XEP-0191)
+    "groups";           -- Shared roster groups (auto-contacts)
+
+    -- Audio/Video calling support
+    "external_services"; -- STUN/TURN server discovery (XEP-0215)
+
+    -- Admin
+    "admin_adhoc";      -- Admin commands
+    "announce";         -- Server announcements
+}
+
+modules_disabled = {
+    "s2s";              -- Disable server-to-server for offline home use
+}
+
+---------- TLS Configuration ----------
+
+-- Force TLS for all connections
+c2s_require_encryption = true
+s2s_require_encryption = true
+s2s_secure_auth = false  -- Disable for offline use (no cert verification)
+
+-- Certificate paths
+certificates = "/data/certs"
+
+---------- Storage ----------
+
+-- Use internal storage (SQLite-like)
+storage = "internal"
+data_path = "/data/prosody"
+
+---------- Logging ----------
+
+log = {
+    info = "*console";
+    warn = "*console";
+    error = "*console";
+}
+
+---------- HTTP Configuration ----------
+
+http_ports = { 5280 }
+http_interfaces = { "*" }
+
+https_ports = { 5281 }
+https_interfaces = { "*" }
+
+-- External URL for HTTP services (set by entrypoint based on HTTP_UPLOAD_SECURE)
+http_external_url = "${HTTP_EXTERNAL_URL}"
+
+---------- File Upload (XEP-0363) ----------
+
+http_file_share_size_limit = ${FILE_SHARE_MAX_SIZE}
+http_file_share_expires_after = 604800  -- 7 days
+http_file_share_daily_quota = ${FILE_SHARE_DAILY_QUOTA}
+-- Files stored in: /data/prosody/<domain>/http_file_share/
+
+---------- Message Archive (XEP-0313) ----------
+
+archive_expires_after = "1y"  -- Keep messages for 1 year
+default_archive_policy = true  -- Archive by default
+
+---------- Shared Roster Groups ----------
+
+-- All users in users.txt are automatically added to each other's contact list
+groups_file = "/data/prosody/groups.txt"
+
+---------- Rate Limiting ----------
+
+limits = {
+    c2s = {
+        rate = "10kb/s";
+        burst = "50kb";
+    };
+}
+
+---------- Audio/Video Calling (STUN/TURN) ----------
+
+-- For home LAN: P2P works directly, no STUN/TURN needed
+-- For internet/NAT traversal: Uncomment and configure STUN/TURN servers
+-- external_services = {
+--     { type = "stun"; transport = "udp"; host = "stun.l.google.com"; port = 19302; };
+--     { type = "stun"; transport = "udp"; host = "stun.stunprotocol.org"; port = 3478; };
+--     -- Add TURN server for symmetric NAT (requires running your own coturn server)
+--     -- { type = "turn"; transport = "udp"; host = "turn.example.com"; port = 3478;
+--     --   username = "turnuser"; password = "turnpass"; };
+-- }
+
+---------- Virtual Hosts ----------
+
+VirtualHost "${DOMAIN}"
+    authentication = "internal_hashed"
+
+    ssl = {
+        key = "/data/certs/${DOMAIN}.key";
+        certificate = "/data/certs/${DOMAIN}.crt";
+    }
+
+---------- Multi-User Chat (MUC) ----------
+
+Component "rooms.${DOMAIN}" "muc"
+    name = "Chat Rooms"
+    restrict_room_creation = false
+
+    modules_enabled = {
+        "muc_mam";
+    }
+
+    -- Default room settings
+    muc_room_default_public = true
+    muc_room_default_persistent = true
+    muc_room_default_members_only = false
+    muc_room_default_moderated = false
+    muc_room_default_history_length = 100
+

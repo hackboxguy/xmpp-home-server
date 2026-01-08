@@ -1,0 +1,16 @@
+# XMPP Home Server - User Accounts
+# Format: username:password
+# Lines starting with # are comments
+# Users can change their passwords later using their XMPP client
+
+# Family members
+admin:adminpw123
+dad:dadpw124
+mom:mompw124
+kid1:kid1pw
+kid2:kid2pw
+
+# xmpp/gloox based Home automation bots
+# lights-bot:bot_secret_123
+# doorbell-bot:bot_secret_456
+# thermostat-bot:bot_secret_789

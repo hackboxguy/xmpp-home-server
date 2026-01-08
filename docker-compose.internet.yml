@@ -1,0 +1,39 @@
+# XMPP Home Server - Internet Deployment Override
+# Use with: docker compose -f docker-compose.yml -f docker-compose.internet.yml up -d
+
+services:
+  xmpp:
+    # Override host network with bridge for internet deployment
+    network_mode: bridge
+
+    # Expose ports explicitly
+    ports:
+      - "5222:5222"   # Client-to-server
+      - "5269:5269"   # Server-to-server (federation)
+      - "5280:5280"   # HTTP (BOSH)
+      - "5281:5281"   # HTTPS (file upload)
+      - "5000:5000"   # Proxy65 file transfer
+
+    environment:
+      # Your domain name (required)
+      - DOMAIN=${DOMAIN:?DOMAIN environment variable is required}
+
+      # Disable mDNS for internet deployment
+      - ENABLE_MDNS=false
+
+      # Enable Let's Encrypt certificates
+      - USE_LETSENCRYPT=${USE_LETSENCRYPT:-true}
+      - LETSENCRYPT_PATH=/etc/letsencrypt/live/${DOMAIN}
+
+      # Use HTTPS for file upload (internet deployment)
+      - HTTP_UPLOAD_SECURE=true
+
+    volumes:
+      # Mount Let's Encrypt certificates (read-only)
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
+      # Persistent data
+      - ./data:/data
+
+      # Users file
+      - ./users.txt:/data/users.txt:ro

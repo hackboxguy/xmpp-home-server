@@ -1,0 +1,48 @@
+# XMPP Home Server - Docker Compose
+# Default configuration for offline home deployment
+
+services:
+  xmpp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xmpp-home-server
+    restart: unless-stopped
+
+    # Use host network for mDNS auto-discovery
+    network_mode: host
+
+    environment:
+      # Domain name (change for custom domain)
+      - DOMAIN=${DOMAIN:-home.local}
+
+      # Admin user JID (optional)
+      - ADMIN_JID=${ADMIN_JID:-}
+
+      # Enable mDNS auto-discovery (set to false for internet deployment)
+      - ENABLE_MDNS=${ENABLE_MDNS:-true}
+
+      # Let's Encrypt (set to true for internet deployment)
+      - USE_LETSENCRYPT=${USE_LETSENCRYPT:-false}
+
+      # HTTP upload security (false=HTTP for home, true=HTTPS for internet)
+      - HTTP_UPLOAD_SECURE=${HTTP_UPLOAD_SECURE:-false}
+
+      # File upload settings
+      - FILE_SHARE_MAX_SIZE=${FILE_SHARE_MAX_SIZE:-10485760}
+      - FILE_SHARE_DAILY_QUOTA=${FILE_SHARE_DAILY_QUOTA:-104857600}
+
+    volumes:
+      # Persistent data (certs, messages, uploads)
+      - ./data:/data
+
+      # Users file
+      - ./users.txt:/data/users.txt:ro
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "prosodyctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
